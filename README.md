@@ -123,3 +123,7 @@ Example filename:
 ```
 
 This report contains the same information as the terminal dashboard and can be archived, shared, or attached to operational documentation.
+
+Example:
+
+![](report_3.png)
