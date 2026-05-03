@@ -6,5 +6,5 @@ MariaDB Analyzer connects to a running MariaDB instance, collects configuration 
 In addition to terminal output, the tool can also generate an HTML report that captures the current state of the database server for documentation, troubleshooting, or later review.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 __author__ = 'Peter Pakula'

@@ -14,20 +14,15 @@ from rich import box
 
 #####################################
 # mariadb-analyzer
-# Version: 0.1.1
+# Version: 0.2.0
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################
 
-# analyzer_style_white = Style(color="white", bgcolor="black")
-# analyzer_style_yellow = Style(color="yellow", bgcolor="black")
-# analyzer_style_border_style = Style(color="cyan", bgcolor="black")
-# analyzer_style_console = Style(color="white", bgcolor="black")
 analyzer_style_white = Style()
 analyzer_style_yellow = Style(color="yellow")
 analyzer_style_border_style = Style(color="cyan")
 analyzer_style_console = Style()
-
 
 def connect_database(database_host, database_port, database_user, database_pass, database_dbname):
     """Connect to MariaDB Server"""
@@ -72,6 +67,10 @@ def get_index_and_data_length_per_tablename(cursor):
         WHERE information_schema.tables.table_type = 'BASE TABLE'
         AND information_schema.tables.table_schema NOT IN ('information_schema', 'sys', 'performance_schema', 'mysql')
         ORDER BY information_schema.tables.table_schema, information_schema.tables.table_name ASC""")
+    return cursor.fetchall()
+
+def get_grants(cursor):
+    cursor.execute("SHOW GRANTS")
     return cursor.fetchall()
 
 def query_cache_read_hit_rate(status):
@@ -291,6 +290,16 @@ def generate_table_diff_variables(mariadb_diff_variables) -> Table:
 
     return table_diff_variables
 
+def generate_table_grants(mariadb_grants) -> Table:
+    """Grants"""
+    table_grants = Table(title="Grants", box=box.ROUNDED, show_header=False, border_style=analyzer_style_border_style, title_justify="left")
+    table_grants.add_column("Grants for user", style=analyzer_style_white)
+
+    for mariadb_grant in mariadb_grants:
+        table_grants.add_row(str(mariadb_grant[0]))
+
+    return table_grants
+
 def generate_report():
     load_dotenv()
 
@@ -301,9 +310,11 @@ def generate_report():
     database_host = os.getenv("MARIADB_ANALYZER_HOST", "localhost")
     database_port = int(os.getenv("MARIADB_ANALYZER_PORT", 3306))
     database_dbname = os.getenv("MARIADB_ANALYZER_DATABASE_NAME", "information_schema")
+    create_html_report = int(os.getenv("MARIADB_ANALYZER_CREATE_HTML_REPORT", 1))
     view_processlist = int(os.getenv("MARIADB_ANALYZER_VIEW_PROCESSLIST", 1))
     view_diff_variables = int(os.getenv("MARIADB_ANALYZER_VIEW_DIFF_VARIABLES", 1))
     view_index_and_data_length = int(os.getenv("MARIADB_ANALYZER_VIEW_INDEX_DATA_LENGTH", 1))
+    view_grants = int(os.getenv("MARIADB_ANALYZER_VIEW_GRANTS", 1))
 
     with connect_database(database_host, database_port, database_user, database_pass, database_dbname) as conn:
         with conn.cursor() as cursor:
@@ -312,10 +323,9 @@ def generate_report():
             mariadb_processlist = get_processlist(cursor)
             mariadb_diff_variables = get_diff_variables(cursor)
             mariadb_index_and_data_length = get_index_and_data_length_per_tablename(cursor)
+            mariadb_grants = get_grants(cursor)
 
     console = Console(record=True, style=analyzer_style_console)
-    #console.print(mariadb_variables)
-    #console.print(mariadb_status)
 
     analyzer_columns = Columns(
         [
@@ -340,9 +350,11 @@ def generate_report():
         console.print(Padding(generate_table_diff_variables(mariadb_diff_variables),1))
     if view_index_and_data_length:
         console.print(Padding(generate_table_index_and_data_length(mariadb_index_and_data_length),1))
-
-    report_filename = f"{report_datetime.strftime('%Y%m%d%H%M%S')}_report.html"
-    console.save_html(report_filename)
+    if view_grants:
+        console.print(Padding(generate_table_grants(mariadb_grants),1))
+    if create_html_report:
+        report_filename = f"{report_datetime.strftime('%Y%m%d%H%M%S')}_report.html"
+        console.save_html(report_filename)
 
 if __name__ == "__main__":
     generate_report()
