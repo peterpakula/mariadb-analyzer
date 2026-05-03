@@ -14,7 +14,7 @@ from rich import box
 
 #####################################
 # mariadb-analyzer
-# Version: 0.1.0
+# Version: 0.1.1
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################

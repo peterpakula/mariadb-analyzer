@@ -147,7 +147,6 @@ Example:
 
 This project uses the following open source packages:
 
-- :contentReference[oaicite:0]{index=0} — MIT License
-- :contentReference[oaicite:1]{index=1} — LGPL-2.1-or-later
-- :contentReference[oaicite:2]{index=2} — BSD-3-Clause
--
+- rich — MIT License
+- mariadb — LGPL-2.1-or-later
+- dotenv — BSD-3-Clause
