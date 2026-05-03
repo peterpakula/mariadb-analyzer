@@ -14,9 +14,9 @@ from rich import box
 
 #####################################
 # mariadb-analyzer
-# Version: 1.0
+# Version: 0.1.0
 # Author: Peter Pakula
-# Date: 2026-05-01
+# Date: 2026-05-02
 #####################################
 
 # analyzer_style_white = Style(color="white", bgcolor="black")

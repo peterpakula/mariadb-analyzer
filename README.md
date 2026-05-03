@@ -31,7 +31,32 @@ It helps answer questions such as:
   * Which configuration values differ from defaults?
   * How much data and index space is being used?
 
-## Installation
+## Usage and Installation with pip
+
+Please use Python Virtual Environment (venv) to install:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install git+https://github.com/peterpakula/mariadb-analyzer.git
+```
+
+Create environment variables.
+
+```bash
+export MARIADB_ANALYZER_USERNAME=root
+export MARIADB_ANALYZER_PASSWORD=your_password
+export MARIADB_ANALYZER_HOST=localhost
+export MARIADB_ANALYZER_DATABASE_NAME=information_schema
+```
+
+Run the script:
+
+```bash
+mariadb-analyzer
+```
+
+## Usage and Installation from source
 
 Please use Python Virtual Environment (venv) to install:
 
@@ -42,8 +67,6 @@ git clone https://github.com/peterpakula/mariadb-analyzer.git
 cd mariadb-analyzer
 pip3 install -r requirements.txt
 ```
-
-## Usage
 
 Create a .env file in the same directory as the script.
 
@@ -62,7 +85,7 @@ MARIADB_ANALYZER_VIEW_INDEX_DATA_LENGTH=1
 Run the script:
 
 ```bash
-python mariadb-analyzer.py
+python src/mariadb_analyzer/cli.py
 ```
 
 ## Requirements
