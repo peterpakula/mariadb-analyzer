@@ -1,5 +1,7 @@
 # MariaDB Analyzer
 
+![](report_1.png)
+
 A compact command-line analysis and reporting tool for MariaDB servers.
 
 MariaDB Analyzer connects to a running MariaDB instance, collects configuration variables, status metrics, and metadata, and presents the information as a structured terminal dashboard.
@@ -88,6 +90,19 @@ Run the script:
 python src/mariadb_analyzer/cli.py
 ```
 
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| MARIADB_ANALYZER_USERNAME	| MariaDB user name used to connect to the server. |
+| MARIADB_ANALYZER_PASSWORD	| Password for the MariaDB user. |
+| MARIADB_ANALYZER_HOST	| Hostname or IP address of the MariaDB server. |
+| MARIADB_ANALYZER_PORT	| MariaDB server port, usually 3306. |
+| MARIADB_ANALYZER_DATABASE_NAME | Database used as the initial connection target. information_schema is suitable for metadata analysis. |
+| MARIADB_ANALYZER_VIEW_PROCESSLIST	| Enables output of the current MariaDB process list. 1 = enabled, 0 = disabled. |
+| MARIADB_ANALYZER_VIEW_DIFF_VARIABLES | Enables display of server variables that differ from default or expected values. 1 = enabled, 0 = disabled. |
+| MARIADB_ANALYZER_VIEW_INDEX_DATA_LENGTH | Enables reporting of index size / index data length information. 1 = enabled, 0 = disabled. |
+
 ## Requirements
 
 The database user should have sufficient privileges to execute commands like:
@@ -127,3 +142,12 @@ This report contains the same information as the terminal dashboard and can be a
 Example:
 
 ![](report_3.png)
+
+## Third-party dependencies
+
+This project uses the following open source packages:
+
+- :contentReference[oaicite:0]{index=0} — MIT License
+- :contentReference[oaicite:1]{index=1} — LGPL-2.1-or-later
+- :contentReference[oaicite:2]{index=2} — BSD-3-Clause
+-

@@ -13,7 +13,7 @@ readme = "README.md"
 authors = [
   { name = "Peter Pakula" }
 ]
-license = { text = "" }
+license = { text = "Apache License 2.0" }
 requires-python = ">=3.9"
 
 dependencies = [
