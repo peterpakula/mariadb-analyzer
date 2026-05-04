@@ -16,7 +16,7 @@ from rich import terminal_theme
 
 #####################################
 # mariadb-analyzer
-# Version: 0.3.0
+# Version: 0.3.1
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################
