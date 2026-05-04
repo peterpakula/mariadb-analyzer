@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from turtle import title
 import mariadb
 from datetime import datetime
 import os
@@ -11,10 +12,11 @@ from rich.columns import Columns
 from rich.table import Table
 from rich.padding import Padding
 from rich import box
+from rich import terminal_theme
 
 #####################################
 # mariadb-analyzer
-# Version: 0.2.0
+# Version: 0.3.0
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################
@@ -354,7 +356,7 @@ def generate_report():
         console.print(Padding(generate_table_grants(mariadb_grants),1))
     if create_html_report:
         report_filename = f"{report_datetime.strftime('%Y%m%d%H%M%S')}_report.html"
-        console.save_html(report_filename)
+        console.save_html(report_filename, theme=terminal_theme.SVG_EXPORT_THEME)
 
 if __name__ == "__main__":
     generate_report()
