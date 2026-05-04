@@ -16,7 +16,7 @@ from rich import terminal_theme
 
 #####################################
 # mariadb-analyzer
-# Version: 0.3.1
+# Version: 0.4.0
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################
@@ -69,6 +69,14 @@ def get_index_and_data_length_per_tablename(cursor):
         WHERE information_schema.tables.table_type = 'BASE TABLE'
         AND information_schema.tables.table_schema NOT IN ('information_schema', 'sys', 'performance_schema', 'mysql')
         ORDER BY information_schema.tables.table_schema, information_schema.tables.table_name ASC""")
+    return cursor.fetchall()
+
+def get_total_count_index_data_length_per_engine(cursor):
+    cursor.execute("""SELECT engine, count(table_name) as count_table, sum(index_length) as sum_index_length, sum(data_length) as sum_data_length
+        FROM information_schema.tables
+        WHERE information_schema.tables.table_type = 'BASE TABLE'
+        AND information_schema.tables.table_schema NOT IN ('information_schema', 'sys', 'performance_schema', 'mysql')
+        GROUP BY engine;""")
     return cursor.fetchall()
 
 def get_grants(cursor):
@@ -280,6 +288,25 @@ def generate_table_index_and_data_length(mariadb_index_and_data_length) -> Table
 
     return table_index_and_data_length
 
+def generate_table_total_count_index_data_length_per_engine(mariadb_total_count_index_data_length_per_engine) -> Table:
+    """Total Count, Index and Data length per Engine"""
+    """engine, count(table_name) as count_table, sum(index_length) as sum_index_length, sum(data_length) as sum_data_length"""
+    table_total_count_index_data_length = Table(title="Count, Index and Data length per Engine", box=box.ROUNDED, border_style=analyzer_style_border_style, title_justify="left")
+    table_total_count_index_data_length.add_column("Engine", style=analyzer_style_yellow)
+    table_total_count_index_data_length.add_column("Count Tables", style=analyzer_style_yellow)
+    table_total_count_index_data_length.add_column("Total Index size", style=analyzer_style_white)
+    table_total_count_index_data_length.add_column("Total Data size", style=analyzer_style_white)
+
+    for total_count_index_data_length in mariadb_total_count_index_data_length_per_engine:
+        table_total_count_index_data_length.add_row(
+            str(total_count_index_data_length[0]),
+            str(total_count_index_data_length[1]),
+            format_bytes(int(total_count_index_data_length[2])),
+            format_bytes(int(total_count_index_data_length[3]))
+        )
+
+    return table_total_count_index_data_length
+
 def generate_table_diff_variables(mariadb_diff_variables) -> Table:
     """Diff default vs custom variables"""
     table_diff_variables = Table(title="Diff Variables", box=box.ROUNDED, border_style=analyzer_style_border_style, title_justify="left")
@@ -316,6 +343,7 @@ def generate_report():
     view_processlist = int(os.getenv("MARIADB_ANALYZER_VIEW_PROCESSLIST", 1))
     view_diff_variables = int(os.getenv("MARIADB_ANALYZER_VIEW_DIFF_VARIABLES", 1))
     view_index_and_data_length = int(os.getenv("MARIADB_ANALYZER_VIEW_INDEX_DATA_LENGTH", 1))
+    view_total_count_index_data_length = int(os.getenv("MARIADB_ANALYZER_VIEW_TOTAL_COUNT_INDEX_DATA_LENGTH", 1))
     view_grants = int(os.getenv("MARIADB_ANALYZER_VIEW_GRANTS", 1))
 
     with connect_database(database_host, database_port, database_user, database_pass, database_dbname) as conn:
@@ -325,6 +353,7 @@ def generate_report():
             mariadb_processlist = get_processlist(cursor)
             mariadb_diff_variables = get_diff_variables(cursor)
             mariadb_index_and_data_length = get_index_and_data_length_per_tablename(cursor)
+            mariadb_total_count_index_data_length_per_engine = get_total_count_index_data_length_per_engine(cursor)
             mariadb_grants = get_grants(cursor)
 
     console = Console(record=True, style=analyzer_style_console)
@@ -352,6 +381,8 @@ def generate_report():
         console.print(Padding(generate_table_diff_variables(mariadb_diff_variables),1))
     if view_index_and_data_length:
         console.print(Padding(generate_table_index_and_data_length(mariadb_index_and_data_length),1))
+    if view_total_count_index_data_length:
+        console.print(Padding(generate_table_total_count_index_data_length_per_engine(mariadb_total_count_index_data_length_per_engine),1))
     if view_grants:
         console.print(Padding(generate_table_grants(mariadb_grants),1))
     if create_html_report:

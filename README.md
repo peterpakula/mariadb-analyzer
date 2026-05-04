@@ -102,6 +102,7 @@ python src/mariadb_analyzer/cli.py
 | MARIADB_ANALYZER_VIEW_PROCESSLIST	| Enables output of the current MariaDB process list. 1 = enabled, 0 = disabled. |
 | MARIADB_ANALYZER_VIEW_DIFF_VARIABLES | Enables display of server variables that differ from default or expected values. 1 = enabled, 0 = disabled. |
 | MARIADB_ANALYZER_VIEW_INDEX_DATA_LENGTH | Enables reporting of index size / index data length information. 1 = enabled, 0 = disabled. |
+| MARIADB_ANALYZER_VIEW_TOTAL_COUNT_INDEX_DATA_LENGTH | Enables reporting of total table count, index size / index data length information. 1 = enabled, 0 = disabled. |
 | MARIADB_ANALYZER_VIEW_GRANTS | Enables display of user grants. 1 = enabled, 0 = disabled. |
 | MARIADB_ANALYZER_CREATE_HTML_REPORT | Enables creation of an HTML report file containing the analysis results. 1 = enabled, 0 = disabled. |
 
