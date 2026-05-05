@@ -16,7 +16,7 @@ from rich import terminal_theme
 
 #####################################
 # mariadb-analyzer
-# Version: 0.4.0
+# Version: 0.4.1
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################
@@ -125,6 +125,7 @@ def format_bytes(size):
 def format_uptime(total_seconds):
     years, remainder = divmod(total_seconds, 365 * 24 * 60 * 60)
     days, remainder = divmod(remainder, 24 * 60 * 60)
+    hours, remainder = divmod(remainder, 60 * 60)
     minutes, seconds = divmod(remainder, 60)
 
     parts = []
@@ -132,6 +133,8 @@ def format_uptime(total_seconds):
         parts.append(f"{years} year{'s' if years != 1 else ''}")
     if days:
         parts.append(f"{days} day{'s' if days != 1 else ''}")
+    if hours:
+        parts.append(f"{hours} hour{'s' if hours != 1 else ''}")
     if minutes:
         parts.append(f"{minutes} minute{'s' if minutes != 1 else ''}")
     if seconds or not parts:
