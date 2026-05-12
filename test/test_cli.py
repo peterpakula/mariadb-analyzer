@@ -1,6 +1,6 @@
 import mariadb
 from unittest.mock import Mock
-from src.mariadb_analyzer.cli import format_uptime, get_processlist, get_variables
+from src.mariadb_analyzer.cli import format_uptime, get_processlist, get_variables, get_status
 from src.mariadb_analyzer.cli import format_bytes
 
 def test_get_processlist():
@@ -22,6 +22,15 @@ def test_get_variables():
     mock_cursor_dict = get_variables(mock_cursor)
     assert mock_cursor_dict.get("hostname") == "test-server"
     assert format_uptime(mock_cursor_dict.get("uptime")) == "3 days, 10 hours, 42 minutes, 40 seconds"
+
+def test_get_status():
+    mariadb.connect = Mock()
+    mock_cursor = mariadb.connect.return_value.cursor.return_value
+    mock_cursor.fetchall.return_value = [
+        ('Qcache_hits', 9999)
+    ]
+    mock_cursor_dict = get_status(mock_cursor)
+    assert mock_cursor_dict.get("Qcache_hits") == 9999
 
 def test_format_uptime():
     assert format_uptime(297760) == "3 days, 10 hours, 42 minutes, 40 seconds"

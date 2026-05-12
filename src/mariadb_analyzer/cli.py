@@ -16,7 +16,7 @@ from rich import terminal_theme
 
 #####################################
 # mariadb-analyzer
-# Version: 0.4.1
+# Version: 0.5.0
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################
@@ -84,23 +84,54 @@ def get_grants(cursor):
     return cursor.fetchall()
 
 def query_cache_read_hit_rate(status):
-    """Qcache_hits / Qcache_inserts"""
+    """Qcache_hits / (Qcache_hits + Qcache_inserts + Qcache_not_cached) × 100"""
     qcache_hits = int(status.get("Qcache_hits", 0))
     qcache_inserts = int(status.get("Qcache_inserts", 0))
+    qcache_not_cached = int(status.get("Qcache_not_cached", 0))
     read_hit_rate = 0
     if qcache_inserts > 0:
-        read_hit_rate = qcache_hits / qcache_inserts
+        read_hit_rate = qcache_hits / (qcache_hits + qcache_inserts + qcache_not_cached) * 100
     return round(read_hit_rate, 2)
 
-def innodb_buffer_pool_hit_ratio(status, variables):
-    """The InnoDB Buffer Pool hit ratio is a indicator how often your pages are retrieved from memory instead of disk:"""
-    """Innodb_buffer_pool_read_requests / (Innodb_buffer_pool_read_requests + Innodb_buffer_pool_reads) * 100 = InnoDB Buffer Pool hit ratio"""
+def innodb_buffer_pool_read_hit_rate(status, variables):
+    """The InnoDB Buffer Pool hit rate is a indicator how often your pages are retrieved from memory instead of disk:"""
+    """1 - (Innodb_buffer_pool_reads / Innodb_buffer_pool_read_requests)"""
+    """Sehr gut > 99,0 %, Akzeptabel 95 – 98,9%, Kritisch < 95 %"""
     key_reads = int(status.get("Innodb_buffer_pool_reads", 0))
     key_read_requests = int(status.get("Innodb_buffer_pool_read_requests", 0))
-    hit_ratio = 0
+    hit_rate = 0
     if key_read_requests > 0:
-        hit_ratio = key_read_requests / (key_read_requests + key_reads) * 100
-    return round(hit_ratio, 2)
+        hit_rate = (1 - key_reads / key_read_requests) * 100
+    return round(hit_rate, 2)
+
+def innodb_buffer_pool_write_hit_rate(status, variables):
+    """(1 - Innodb_buffer_pool_pages_flushed / Innodb_buffer_pool_write_requests) × 100"""
+    key_pages_flushed = int(status.get("Innodb_buffer_pool_pages_flushed", 0))
+    key_write_requests = int(status.get("Innodb_buffer_pool_write_requests", 0))
+    hit_rate = 0
+    if key_write_requests > 0:
+        hit_rate = (1 - key_pages_flushed / key_write_requests) * 100
+    return round(hit_rate, 2)
+
+def myisam_read_hit_rate(status, variables):
+    """Key Cache Read Hit Rate (%) = (1 - Key_reads / Key_read_requests) × 100"""
+    """Sehr gut > 99,0 %, Akzeptabel 95 – 98,9%, Kritisch < 95 %"""
+    key_reads = int(status.get("Key_reads", 0))
+    key_read_requests = int(status.get("Key_read_requests", 0))
+    hit_rate = 0
+    if key_read_requests > 0:
+        hit_rate = (1 - key_reads / key_read_requests) * 100
+    return round(hit_rate, 2)
+
+def myisam_write_hit_rate(status, variables):
+    """Key Cache Write Hit Rate (%) = (1 - Key_writes / Key_write_requests) × 100"""
+    """Sehr gut > 95,0 %, Akzeptabel 80 – 94%, Kritisch < 80 %"""
+    key_writes = int(status.get("Key_writes", 0))
+    key_write_requests = int(status.get("Key_write_requests", 0))
+    hit_rate = 0
+    if key_write_requests > 0:
+        hit_rate = (1 - key_writes / key_write_requests) * 100
+    return round(hit_rate, 2)
 
 def calculate_per_connection_total(status, variables):
     sort_buffer_size = int(variables.get('sort_buffer_size', 0))
@@ -181,14 +212,23 @@ def generate_table_innodb(mariadb_variables, mariadb_status) -> Table:
     table_innodb.add_row("innodb_flush_method", f"{ mariadb_variables.get('innodb_flush_method') }")
     table_innodb.add_row("innodb_log_file_size", f"{ format_bytes(int(mariadb_variables.get('innodb_log_file_size', 0))) }")
     table_innodb.add_row("innodb_log_buffer_size", f"{ format_bytes(int(mariadb_variables.get('innodb_log_buffer_size', 0))) }")
-    table_innodb.add_row("Innodb_buffer_pool_read_requests", f"{ mariadb_status.get('Innodb_buffer_pool_read_requests') }")
-    table_innodb.add_row("Innodb_buffer_pool_reads", f"{ mariadb_status.get('Innodb_buffer_pool_reads') }")
+    table_innodb.add_row("Innodb_buffer_pool_read_requests (buffer)", f"{ mariadb_status.get('Innodb_buffer_pool_read_requests') }")
+    table_innodb.add_row("Innodb_buffer_pool_reads (disk)", f"{ mariadb_status.get('Innodb_buffer_pool_reads') }")
     table_innodb.add_row("Innodb_buffer_pool_pages_data", f"{ mariadb_status.get('Innodb_buffer_pool_pages_data') }")
     table_innodb.add_row("Innodb_buffer_pool_pages_misc", f"{ mariadb_status.get('Innodb_buffer_pool_pages_misc') }")
     table_innodb.add_row("Innodb_buffer_pool_pages_free", f"{ mariadb_status.get('Innodb_buffer_pool_pages_free') }")
     table_innodb.add_row("Innodb_buffer_pool_pages_total", f"{ mariadb_status.get('Innodb_buffer_pool_pages_total') }")
-    table_innodb.add_row("Innodb_page_size", f"{ format_bytes(int(mariadb_status.get('Innodb_page_size',0 ))) }", end_section=True)
-    table_innodb.add_row("pool_hit_ratio", f"{ innodb_buffer_pool_hit_ratio(status=mariadb_status, variables=mariadb_variables) } %")
+    table_innodb.add_row("Innodb_page_size", f"{ format_bytes(int(mariadb_status.get('Innodb_page_size',0 ))) }")
+    table_innodb.add_row("Innodb_buffer_pool_wait_free", f"{ mariadb_status.get('Innodb_buffer_pool_wait_free',0 ) }", end_section=True)
+    read_hit_rate = innodb_buffer_pool_read_hit_rate(status=mariadb_status, variables=mariadb_variables)
+    if read_hit_rate > 99:
+        str_read_hit_rate = f"[bright_green]{ read_hit_rate } %[/bright_green]"
+    elif read_hit_rate > 94:
+        str_read_hit_rate = f"[bright_yellow]{ read_hit_rate } %[/bright_yellow]"
+    else:
+        str_read_hit_rate = f"[bright_red]{ read_hit_rate } %[/bright_red]"
+    table_innodb.add_row("read_hit_rate", str_read_hit_rate)
+    table_innodb.add_row("write_hit_rate", f"{ innodb_buffer_pool_write_hit_rate(status=mariadb_status, variables=mariadb_variables) } %")
     return table_innodb
 
 def generate_table_myisam(mariadb_variables, mariadb_status) -> Table:
@@ -204,7 +244,26 @@ def generate_table_myisam(mariadb_variables, mariadb_status) -> Table:
     table_myisam.add_row("Key_blocks_not_flushed", f"{ int(mariadb_status.get('Key_blocks_not_flushed', 0)) }")
     table_myisam.add_row("Key_blocks_used", f"{ int(mariadb_status.get('Key_blocks_used', 0)) }")
     table_myisam.add_row("Key_blocks_unused", f"{ int(mariadb_status.get('Key_blocks_unused', 0)) }")
-    table_myisam.add_row("Key_blocks_warm", f"{ int(mariadb_status.get('Key_blocks_warm', 0)) }")
+    table_myisam.add_row("Key_blocks_warm", f"{ int(mariadb_status.get('Key_blocks_warm', 0)) }", end_section=True)
+
+    mi_read_hit_rate = myisam_read_hit_rate(status=mariadb_status, variables=mariadb_variables)
+    if mi_read_hit_rate > 99:
+        str_mi_read_hit_rate = f"[bright_green]{ mi_read_hit_rate } %[/bright_green]"
+    elif mi_read_hit_rate > 94:
+        str_mi_read_hit_rate = f"[bright_yellow]{ mi_read_hit_rate } %[/bright_yellow]"
+    else:
+        str_mi_read_hit_rate = f"[bright_red]{ mi_read_hit_rate } %[/bright_red]"
+    table_myisam.add_row("read_hit_rate", str_mi_read_hit_rate)
+
+    mi_write_hit_rate = myisam_write_hit_rate(status=mariadb_status, variables=mariadb_variables)
+    if mi_write_hit_rate > 94:
+        str_mi_write_hit_rate = f"[bright_green]{ mi_write_hit_rate } %[/bright_green]"
+    elif mi_write_hit_rate > 79:
+        str_mi_write_hit_rate = f"[bright_yellow]{ mi_write_hit_rate } %[/bright_yellow]"
+    else:
+        str_mi_write_hit_rate = f"[bright_red]{ mi_write_hit_rate } %[/bright_red]"
+    table_myisam.add_row("write_hit_rate", str_mi_write_hit_rate)
+
     return table_myisam
 
 def generate_table_aria(mariadb_variables, mariadb_status) -> Table:
@@ -238,7 +297,15 @@ def generate_table_query_cache(mariadb_variables, mariadb_status) -> Table:
     table_query_cache.add_row("Qcache_not_cached", f"{ int(mariadb_status.get('Qcache_not_cached', 0)) }")
     table_query_cache.add_row("Qcache_queries_in_cache", f"{ int(mariadb_status.get('Qcache_queries_in_cache', 0)) }")
     table_query_cache.add_row("Qcache_total_blocks", f"{ int(mariadb_status.get('Qcache_total_blocks', 0)) }", end_section=True)
-    table_query_cache.add_row("read_hit_rate", f"{ query_cache_read_hit_rate(mariadb_status) }")
+    qc_read_hit_rate = query_cache_read_hit_rate(status=mariadb_status)
+    """Gut> 50 %, Prüfen 20 – 50 %, Cache kontraproduktiv< 20 % → lieber deaktivieren"""
+    if qc_read_hit_rate > 50:
+        str_qc_read_hit_rate = f"[bright_green]{ qc_read_hit_rate } %[/bright_green]"
+    elif qc_read_hit_rate > 19:
+        str_qc_read_hit_rate = f"[bright_yellow]{ qc_read_hit_rate } %[/bright_yellow]"
+    else:
+        str_qc_read_hit_rate = f"[bright_red]{ qc_read_hit_rate } %[/bright_red]"
+    table_query_cache.add_row("read_hit_rate", f"{ str_qc_read_hit_rate }")
     return table_query_cache
 
 def generate_table_processlist(mariadb_processlist) -> Table:
