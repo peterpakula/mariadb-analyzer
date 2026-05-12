@@ -16,7 +16,7 @@ from rich import terminal_theme
 
 #####################################
 # mariadb-analyzer
-# Version: 0.5.0
+# Version: 0.6.0
 # Author: Peter Pakula
 # Date: 2026-05-03
 #####################################
@@ -113,7 +113,7 @@ def innodb_buffer_pool_write_hit_rate(status, variables):
         hit_rate = (1 - key_pages_flushed / key_write_requests) * 100
     return round(hit_rate, 2)
 
-def myisam_read_hit_rate(status, variables):
+def myisam_key_cache_read_hit_rate(status, variables):
     """Key Cache Read Hit Rate (%) = (1 - Key_reads / Key_read_requests) × 100"""
     """Sehr gut > 99,0 %, Akzeptabel 95 – 98,9%, Kritisch < 95 %"""
     key_reads = int(status.get("Key_reads", 0))
@@ -123,7 +123,7 @@ def myisam_read_hit_rate(status, variables):
         hit_rate = (1 - key_reads / key_read_requests) * 100
     return round(hit_rate, 2)
 
-def myisam_write_hit_rate(status, variables):
+def myisam_key_cache_write_hit_rate(status, variables):
     """Key Cache Write Hit Rate (%) = (1 - Key_writes / Key_write_requests) × 100"""
     """Sehr gut > 95,0 %, Akzeptabel 80 – 94%, Kritisch < 80 %"""
     key_writes = int(status.get("Key_writes", 0))
@@ -131,6 +131,46 @@ def myisam_write_hit_rate(status, variables):
     hit_rate = 0
     if key_write_requests > 0:
         hit_rate = (1 - key_writes / key_write_requests) * 100
+    return round(hit_rate, 2)
+
+def myisam_key_cache_usage(status, variables):
+    """Key Cache Usage (%) = Key_blocks_used / (Key_blocks_used + Key_blocks_unused) × 100"""
+    """Gut dimensioniert 60 – 85 %, Zu knapp> 95 % → key_buffer_size erhöhen, Überdimensioniert< 30 % → Speicher anderweitig nutzen"""
+    key_blocks_used = int(status.get("Key_blocks_used", 0))
+    key_blocks_unused = int(status.get("Key_blocks_unused", 0))
+    hit_rate = 0
+    if key_blocks_unused > 0:
+        hit_rate = key_blocks_used / (key_blocks_used + key_blocks_unused) * 100
+    return round(hit_rate, 2)
+
+def aria_page_cache_read_hit_rate(status, variables):
+    """Page Cache Read Hit Rate (%) = (1 - Aria_pagecache_reads / Aria_pagecache_read_requests) × 100"""
+    """Sehr gut≥ 99 %, Akzeptabel 95 – 98,9 %, Kritisch< 95 % → aria_pagecache_buffer_size erhöhen"""
+    key_reads = int(status.get("Aria_pagecache_reads", 0))
+    key_read_requests = int(status.get("Aria_pagecache_read_requests", 0))
+    hit_rate = 0
+    if key_read_requests > 0:
+        hit_rate = (1 - key_reads / key_read_requests) * 100
+    return round(hit_rate, 2)
+
+def aria_page_cache_write_hit_rate(status, variables):
+    """Page Cache Write Hit Rate (%) = (1 - Aria_pagecache_writes / Aria_pagecache_write_requests) × 100"""
+    """Sehr gut > 95,0 %, Akzeptabel 80 – 94%, Kritisch < 80 %"""
+    pagecache_writes = int(status.get("Aria_pagecache_writes", 0))
+    pagecache_write_requests = int(status.get("Aria_pagecache_write_requests", 0))
+    hit_rate = 0
+    if pagecache_write_requests > 0:
+        hit_rate = (1 - pagecache_writes / pagecache_write_requests) * 100
+    return round(hit_rate, 2)
+
+def aria_page_cache_usage(status, variables):
+    """Page Cache Belegung (%) = Aria_pagecache_blocks_used / (Aria_pagecache_blocks_used + Aria_pagecache_blocks_unused) × 100"""
+    """Gut dimensioniert 60 – 85 %, Zu knapp> 95 % → pagecache_size erhöhen, Überdimensioniert< 30 % → Speicher anderweitig nutzen"""
+    key_blocks_used = int(status.get("Aria_pagecache_blocks_used", 0))
+    key_blocks_unused = int(status.get("Aria_pagecache_blocks_unused", 0))
+    hit_rate = 0
+    if key_blocks_unused > 0:
+        hit_rate = key_blocks_used / (key_blocks_used + key_blocks_unused) * 100
     return round(hit_rate, 2)
 
 def calculate_per_connection_total(status, variables):
@@ -246,7 +286,8 @@ def generate_table_myisam(mariadb_variables, mariadb_status) -> Table:
     table_myisam.add_row("Key_blocks_unused", f"{ int(mariadb_status.get('Key_blocks_unused', 0)) }")
     table_myisam.add_row("Key_blocks_warm", f"{ int(mariadb_status.get('Key_blocks_warm', 0)) }", end_section=True)
 
-    mi_read_hit_rate = myisam_read_hit_rate(status=mariadb_status, variables=mariadb_variables)
+    """Sehr gut > 99,0 %, Akzeptabel 95 – 98,9%, Kritisch < 95 %"""
+    mi_read_hit_rate = myisam_key_cache_read_hit_rate(status=mariadb_status, variables=mariadb_variables)
     if mi_read_hit_rate > 99:
         str_mi_read_hit_rate = f"[bright_green]{ mi_read_hit_rate } %[/bright_green]"
     elif mi_read_hit_rate > 94:
@@ -255,7 +296,8 @@ def generate_table_myisam(mariadb_variables, mariadb_status) -> Table:
         str_mi_read_hit_rate = f"[bright_red]{ mi_read_hit_rate } %[/bright_red]"
     table_myisam.add_row("read_hit_rate", str_mi_read_hit_rate)
 
-    mi_write_hit_rate = myisam_write_hit_rate(status=mariadb_status, variables=mariadb_variables)
+    """Sehr gut > 95,0 %, Akzeptabel 80 – 94%, Kritisch < 80 %"""
+    mi_write_hit_rate = myisam_key_cache_write_hit_rate(status=mariadb_status, variables=mariadb_variables)
     if mi_write_hit_rate > 94:
         str_mi_write_hit_rate = f"[bright_green]{ mi_write_hit_rate } %[/bright_green]"
     elif mi_write_hit_rate > 79:
@@ -263,6 +305,18 @@ def generate_table_myisam(mariadb_variables, mariadb_status) -> Table:
     else:
         str_mi_write_hit_rate = f"[bright_red]{ mi_write_hit_rate } %[/bright_red]"
     table_myisam.add_row("write_hit_rate", str_mi_write_hit_rate)
+
+    """Gut dimensioniert 60 – 85 %, Zu knapp> 95 % → key_buffer_size erhöhen, Überdimensioniert< 30 % → Speicher anderweitig nutzen"""
+    mi_cache_usage = myisam_key_cache_usage(status=mariadb_status, variables=mariadb_variables)
+    if mi_cache_usage > 95:
+        str_mi_cache_usage = f"[bright_red]{ mi_cache_usage } %[/bright_red]"
+    elif mi_cache_usage < 30 and mi_cache_usage > 0:
+        str_mi_cache_usage = f"[bright_yellow]{ mi_cache_usage } %[/bright_yellow]"
+    elif mi_cache_usage > 59 and mi_cache_usage < 86:
+        str_mi_cache_usage = f"[bright_green]{ mi_cache_usage } %[/bright_green]"
+    else:
+        str_mi_cache_usage = f"{ mi_cache_usage } %"
+    table_myisam.add_row("key_cache_usage", str_mi_cache_usage)
 
     return table_myisam
 
@@ -279,7 +333,40 @@ def generate_table_aria(mariadb_variables, mariadb_status) -> Table:
     table_aria.add_row("Aria_pagecache_blocks_not_flushed", f"{ int(mariadb_status.get('Aria_pagecache_blocks_not_flushed', 0)) }")
     table_aria.add_row("Aria_pagecache_blocks_used", f"{ int(mariadb_status.get('Aria_pagecache_blocks_used', 0)) }")
     table_aria.add_row("Aria_pagecache_blocks_unused", f"{ int(mariadb_status.get('Aria_pagecache_blocks_unused', 0)) }")
-    table_aria.add_row("Aria_transaction_log_syncs", f"{ int(mariadb_status.get('Aria_transaction_log_syncs', 0)) }")
+    table_aria.add_row("Aria_transaction_log_syncs", f"{ int(mariadb_status.get('Aria_transaction_log_syncs', 0)) }", end_section=True)
+
+    """Sehr gut≥ 99 %, Akzeptabel 95 – 98,9 %, Kritisch< 95 % → aria_pagecache_buffer_size erhöhen"""
+    aria_read_hit_rate = aria_page_cache_read_hit_rate(status=mariadb_status, variables=mariadb_variables)
+    if aria_read_hit_rate > 98.9:
+        str_aria_read_hit_rate = f"[bright_green]{ aria_read_hit_rate } %[/bright_green]"
+    elif aria_read_hit_rate > 94:
+        str_aria_read_hit_rate = f"[bright_yellow]{ aria_read_hit_rate } %[/bright_yellow]"
+    else:
+        str_aria_read_hit_rate = f"[bright_red]{ aria_read_hit_rate } %[/bright_red]"
+    table_aria.add_row("read_hit_rate", str_aria_read_hit_rate)
+
+    """Sehr gut > 95,0 %, Akzeptabel 80 – 94%, Kritisch < 80 %"""
+    aria_write_hit_rate = aria_page_cache_write_hit_rate(status=mariadb_status, variables=mariadb_variables)
+    if aria_write_hit_rate > 94:
+        str_aria_write_hit_rate = f"[bright_green]{ aria_write_hit_rate } %[/bright_green]"
+    elif aria_write_hit_rate > 79:
+        str_aria_write_hit_rate = f"[bright_yellow]{ aria_write_hit_rate } %[/bright_yellow]"
+    else:
+        str_aria_write_hit_rate = f"[bright_red]{ aria_write_hit_rate } %[/bright_red]"
+    table_aria.add_row("write_hit_rate", str_aria_write_hit_rate)
+
+    """Gut dimensioniert 60 – 85 %, Zu knapp> 95 % → key_buffer_size erhöhen, Überdimensioniert< 30 % → Speicher anderweitig nutzen"""
+    aria_cache_usage = aria_page_cache_usage(status=mariadb_status, variables=mariadb_variables)
+    if aria_cache_usage > 95:
+        str_aria_cache_usage = f"[bright_red]{ aria_cache_usage } %[/bright_red]"
+    elif aria_cache_usage < 30 and aria_cache_usage > 0:
+        str_aria_cache_usage = f"[bright_yellow]{ aria_cache_usage } %[/bright_yellow]"
+    elif aria_cache_usage > 59 and aria_cache_usage < 86:
+        str_aria_cache_usage = f"[bright_green]{ aria_cache_usage } %[/bright_green]"
+    else:
+        str_aria_cache_usage = f"{ aria_cache_usage } %"
+    table_aria.add_row("page_cache_usage", str_aria_cache_usage)
+
     return table_aria
 
 def generate_table_query_cache(mariadb_variables, mariadb_status) -> Table:
