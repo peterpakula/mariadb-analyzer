@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-from turtle import title
 import mariadb
 from datetime import datetime
 import os
 from dotenv import load_dotenv
-from rich import print
 from rich.console import Console
 from rich.style import Style
 from rich.columns import Columns
@@ -375,7 +373,8 @@ def generate_table_query_cache(mariadb_variables, mariadb_status) -> Table:
     table_query_cache.add_column("Variable name", style=analyzer_style_yellow)
     table_query_cache.add_column("Value", style=analyzer_style_white)
     table_query_cache.add_row("query_cache_size", f"{ format_bytes(int(mariadb_variables.get('query_cache_size', 0))) }")
-    table_query_cache.add_row("query_cache_type", f"{ mariadb_variables.get('query_cache_type') }")
+    query_cache_type = mariadb_variables.get('query_cache_type')
+    table_query_cache.add_row("query_cache_type", f"{ query_cache_type }")
     table_query_cache.add_row("Qcache_free_blocks", f"{ int(mariadb_status.get('Qcache_free_blocks', 0)) }")
     table_query_cache.add_row("Qcache_free_memory", f"{ format_bytes(int(mariadb_status.get('Qcache_free_memory', 0))) }")
     table_query_cache.add_row("Qcache_hits", f"{ int(mariadb_status.get('Qcache_hits', 0)) }")
@@ -384,15 +383,17 @@ def generate_table_query_cache(mariadb_variables, mariadb_status) -> Table:
     table_query_cache.add_row("Qcache_not_cached", f"{ int(mariadb_status.get('Qcache_not_cached', 0)) }")
     table_query_cache.add_row("Qcache_queries_in_cache", f"{ int(mariadb_status.get('Qcache_queries_in_cache', 0)) }")
     table_query_cache.add_row("Qcache_total_blocks", f"{ int(mariadb_status.get('Qcache_total_blocks', 0)) }", end_section=True)
-    qc_read_hit_rate = query_cache_read_hit_rate(status=mariadb_status)
-    """Gut> 50 %, Prüfen 20 – 50 %, Cache kontraproduktiv< 20 % → lieber deaktivieren"""
-    if qc_read_hit_rate > 50:
-        str_qc_read_hit_rate = f"[bright_green]{ qc_read_hit_rate } %[/bright_green]"
-    elif qc_read_hit_rate > 19:
-        str_qc_read_hit_rate = f"[bright_yellow]{ qc_read_hit_rate } %[/bright_yellow]"
-    else:
-        str_qc_read_hit_rate = f"[bright_red]{ qc_read_hit_rate } %[/bright_red]"
-    table_query_cache.add_row("read_hit_rate", f"{ str_qc_read_hit_rate }")
+
+    if(query_cache_type in [1,2,'ON','DEMAND']):
+        qc_read_hit_rate = query_cache_read_hit_rate(status=mariadb_status)
+        """Gut> 50 %, Prüfen 20 – 50 %, Cache kontraproduktiv< 20 % → lieber deaktivieren"""
+        if qc_read_hit_rate > 50:
+            str_qc_read_hit_rate = f"[bright_green]{ qc_read_hit_rate } %[/bright_green]"
+        elif qc_read_hit_rate > 19:
+            str_qc_read_hit_rate = f"[bright_yellow]{ qc_read_hit_rate } %[/bright_yellow]"
+        else:
+            str_qc_read_hit_rate = f"[bright_red]{ qc_read_hit_rate } %[/bright_red]"
+        table_query_cache.add_row("read_hit_rate", f"{ str_qc_read_hit_rate }")
     return table_query_cache
 
 def generate_table_processlist(mariadb_processlist) -> Table:
