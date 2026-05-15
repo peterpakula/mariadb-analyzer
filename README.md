@@ -90,6 +90,20 @@ Run the script:
 python src/mariadb_analyzer/cli.py
 ```
 
+## Usage with Docker
+
+Build container.
+
+```bash
+docker build -t mariadb-analyzer .
+```
+
+Run container
+
+```bash
+docker run -e MARIADB_ANALYZER_HOST=localhost -e MARIADB_ANALYZER_USERNAME=root -e MARIADB_ANALYZER_PASSWORD=your_password mariadb-analyzer
+```
+
 ## Environment variables
 
   * MARIADB_ANALYZER_USERNAME	= MariaDB user name used to connect to the server.
