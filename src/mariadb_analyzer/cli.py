@@ -14,9 +14,9 @@ from rich import terminal_theme
 
 #####################################
 # mariadb-analyzer
-# Version: 0.6.1
+# Version: 0.6.2
 # Author: Peter Pakula
-# Date: 2026-05-03
+# Date: 2026-06-11
 #####################################
 
 analyzer_style_white = Style()
@@ -24,7 +24,7 @@ analyzer_style_yellow = Style(color="yellow")
 analyzer_style_border_style = Style(color="cyan")
 analyzer_style_console = Style()
 
-def connect_database(database_host, database_port, database_user, database_pass, database_dbname):
+def connect_database(database_host, database_port, database_user, database_pass, database_dbname, database_ssl):
     """Connect to MariaDB Server"""
     try:
         return mariadb.connect(
@@ -32,7 +32,8 @@ def connect_database(database_host, database_port, database_user, database_pass,
             port=database_port,
             database=database_dbname,
             user=database_user,
-            password=database_pass
+            password=database_pass,
+            ssl=True if database_ssl == 1 else False
         )
     except mariadb.Error as e:
         raise RuntimeError(f"MariaDB connection failed: {e}") from e
@@ -496,6 +497,7 @@ def generate_report():
     database_pass = os.getenv("MARIADB_ANALYZER_PASSWORD")
     database_host = os.getenv("MARIADB_ANALYZER_HOST", "localhost")
     database_port = int(os.getenv("MARIADB_ANALYZER_PORT", 3306))
+    database_ssl = int(os.getenv("MARIADB_ANALYZER_SSL", 1))
     database_dbname = os.getenv("MARIADB_ANALYZER_DATABASE_NAME", "information_schema")
     create_html_report = int(os.getenv("MARIADB_ANALYZER_CREATE_HTML_REPORT", 1))
     view_processlist = int(os.getenv("MARIADB_ANALYZER_VIEW_PROCESSLIST", 1))
@@ -504,7 +506,7 @@ def generate_report():
     view_total_count_index_data_length = int(os.getenv("MARIADB_ANALYZER_VIEW_TOTAL_COUNT_INDEX_DATA_LENGTH", 1))
     view_grants = int(os.getenv("MARIADB_ANALYZER_VIEW_GRANTS", 1))
 
-    with connect_database(database_host, database_port, database_user, database_pass, database_dbname) as conn:
+    with connect_database(database_host, database_port, database_user, database_pass, database_dbname, database_ssl) as conn:
         with conn.cursor() as cursor:
             mariadb_variables = get_variables(cursor)
             mariadb_status = get_status(cursor)

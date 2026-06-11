@@ -1,6 +1,6 @@
 # MariaDB Analyzer
 
-![](report_1.png)
+![](images/report_1.png)
 
 A compact command-line analysis and reporting tool for MariaDB servers.
 
@@ -111,6 +111,7 @@ MARIADB_ANALYZER_USERNAME	= MariaDB user name used to connect to the server.
 MARIADB_ANALYZER_PASSWORD	= Password for the MariaDB user.
 MARIADB_ANALYZER_HOST	= Hostname or IP address of the MariaDB server.
 MARIADB_ANALYZER_PORT	= MariaDB server port, usually 3306.
+MARIADB_ANALYZER_SSL = Securing MariaDB Connection with SSL. 1 = enabled, 0 = disabled.
 MARIADB_ANALYZER_DATABASE_NAME = Database used as the initial connection target. information_schema is suitable for metadata analysis.
 MARIADB_ANALYZER_VIEW_PROCESSLIST	= Enables output of the current MariaDB process list. 1 = enabled, 0 = disabled.
 MARIADB_ANALYZER_VIEW_DIFF_VARIABLES = Enables display of server variables that differ from default or expected values. 1 = enabled, 0 = disabled.
@@ -142,9 +143,9 @@ A formatted live overview of the MariaDB instance.
 
 Example:
 
-![](report_1.png)
+![](images/report_1.png)
 
-![](report_2.png)
+![](images/report_2.png)
 
 ### HTML Report
 
@@ -160,7 +161,7 @@ This report contains the same information as the terminal dashboard and can be a
 
 Example:
 
-![](report_3.png)
+![](images/report_3.png)
 
 ## Third-party dependencies
 
